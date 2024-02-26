@@ -6,6 +6,7 @@ from REST import ROOT
 
 import sqlite3
 from pathlib import Path
+import numpy as np
 
 setup_sql = """
 CREATE TABLE IF NOT EXISTS files (hash TEXT PRIMARY KEY, filename TEXT, timestamp INTEGER);
@@ -14,15 +15,10 @@ CREATE TABLE IF NOT EXISTS signals (data BLOB NOT NULL, event_id INTEGER, signal
 
 database_file = Path("/tmp/signals.db")
 
-conn = sqlite3.connect(database_file)
-
-conn.execute('PRAGMA foreign_keys = ON')
-conn.executescript(setup_sql)
-conn.commit()
-conn.close()
-
 filename = Path(
     "/storage/trex-dm/Canfranc/quickAnalysis/data/R01997_00000_RawData_Background_Alphas_cronTREX_V2.3.15.root")
+
+conn = None
 
 
 def compute_file_hash(filepath, hash_algorithm='sha256'):
@@ -53,14 +49,38 @@ def process_file(filename: str | Path):
         raise ValueError(f"Unexpected event type: {event.GetName()}")
 
     file_hash = compute_file_hash(filename)
+    data = np.zeros(512, dtype=np.int16)
+    conn.execute('INSERT INTO files (hash, filename, timestamp) VALUES (?, ?, ?)',
+                 (file_hash, str(filename), 0))
 
-    for event_index in range(run.GetEntries()):
+    entries = run.GetEntries()
+    for event_index in range(entries):
+        print(f"file: {filename}, event: {event_index}/{entries}")
         run.GetEntry(event_index)
+        event_id = event.GetID()
         for signal_index in range(event.GetNumberOfSignals()):
             signal = event.GetSignal(signal_index)
+            signal_id = signal.GetID()
+            timestamp = 0  # TODO: get timestamp for the signal
+            if signal.GetNumberOfPoints() != len(data):
+                raise ValueError(f"Unexpected number of points: {signal.GetNumberOfPoints()}")
+            for data_index in range(len(data)):
+                data[data_index] = signal.GetData(data_index)
 
+            conn.execute('INSERT INTO signals (data, event_id, signal_id, timestamp, hash) VALUES (?, ?, ?, ?, ?)',
+                         (data.tobytes(), event_id, signal_id, timestamp, file_hash))
+
+    conn.commit()
+
+
+conn = sqlite3.connect(database_file)
+conn.execute('PRAGMA foreign_keys = ON')
+conn.executescript(setup_sql)
+conn.commit()
 
 process_file(filename)
+
+conn.close()
 
 if __name__ == "__main__":
     ...
