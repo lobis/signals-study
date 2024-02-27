@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 
 setup_sql = """
-CREATE TABLE IF NOT EXISTS files (hash TEXT PRIMARY KEY, filename TEXT, timestamp INTEGER, detector TEXT, driftfield INTEGER, amplificationfield INTEGER, pressure DOUBLE, gain TEXT, clock TEXT, shaping TEXT);
+CREATE TABLE IF NOT EXISTS files (hash TEXT PRIMARY KEY, filename TEXT, timestart INTEGER, timeend INTEGER, detector TEXT, driftfield INTEGER, amplificationfield INTEGER, pressure DOUBLE, gain TEXT, clock TEXT, shaping TEXT);
 CREATE TABLE IF NOT EXISTS signals (data BLOB NOT NULL, event_id INTEGER, signal_id INTEGER, timestamp INTEGER, hash TEXT, FOREIGN KEY (hash) REFERENCES files(hash), PRIMARY KEY (event_id, signal_id, hash));
 """.strip()
 
@@ -50,6 +50,8 @@ def process_file(filename: str | Path):
 
     file_hash = compute_file_hash(filename)
     data = np.zeros(512, dtype=np.int16)
+    time_start = run.GetStartTimestamp()
+    time_end = run.GetEndTimestamp()
     detector_value = run.GetMetadataClass("TRestDetector").GetDataMemberValue("fDetectorName")
     drift_value = run.GetMetadataClass("TRestDetector").GetDataMemberValue("fDriftField")
     amplification_value = run.GetMetadataClass("TRestDetector").GetDataMemberValue("fAmplificationVoltage")
@@ -58,8 +60,8 @@ def process_file(filename: str | Path):
     clock_value = run.GetMetadataClass("TRestDetector").GetDataMemberValue("fElectronicsClock")
     shaping_value = run.GetMetadataClass("TRestDetector").GetDataMemberValue("fElectronicsShaping")
     
-    conn.execute('INSERT INTO files (hash, filename, timestamp, detector, driftfield, amplificationfield, pressure, gain, clock, shaping) VALUES (?, ?, ?)',
-                 (file_hash, str(filename), 0, detector_value, drift_value, amplification_value, pressure_value, gain_value, clock_value, shaping_value))
+    conn.execute('INSERT INTO files (hash, filename, timestart, timeend, detector, driftfield, amplificationfield, pressure, gain, clock, shaping) VALUES (?, ?, ?)',
+                 (file_hash, str(filename), time_start, time_end, detector_value, drift_value, amplification_value, pressure_value, gain_value, clock_value, shaping_value))
 
     entries = run.GetEntries()
     for event_index in range(entries):
