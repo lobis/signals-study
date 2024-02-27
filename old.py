@@ -13,10 +13,9 @@ CREATE TABLE IF NOT EXISTS files (hash TEXT PRIMARY KEY, filename TEXT, timestam
 CREATE TABLE IF NOT EXISTS signals (data BLOB NOT NULL, event_id INTEGER, signal_id INTEGER, timestamp INTEGER, hash TEXT, FOREIGN KEY (hash) REFERENCES files(hash), PRIMARY KEY (event_id, signal_id, hash));
 """.strip()
 
-database_file = Path("/tmp/signals.db")
+# database_file = Path("/tmp/signals.db")
 
-filename = Path(
-    "/storage/trex-dm/Canfranc/quickAnalysis/data/R01997_00000_RawData_Background_Alphas_cronTREX_V2.3.15.root")
+# filename = Path("/storage/trex-dm/Canfranc/quickAnalysis/data/R01997_00000_RawData_Background_Alphas_cronTREX_V2.3.15.root")
 
 conn = None
 
@@ -73,14 +72,14 @@ def process_file(filename: str | Path):
     conn.commit()
 
 
-conn = sqlite3.connect(database_file)
-conn.execute('PRAGMA foreign_keys = ON')
-conn.executescript(setup_sql)
-conn.commit()
+# conn = sqlite3.connect(database_file)
+# conn.execute('PRAGMA foreign_keys = ON')
+# conn.executescript(setup_sql)
+# conn.commit()
 
-process_file(filename)
+# process_file(filename)
 
-conn.close()
+# conn.close()
 
 if __name__ == "__main__":
     ...
