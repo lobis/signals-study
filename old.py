@@ -60,7 +60,7 @@ def process_file(filename: str | Path):
         for signal_index in range(event.GetNumberOfSignals()):
             signal = event.GetSignal(signal_index)
             signal_id = signal.GetID()
-            timestamp = 0  # TODO: get timestamp for the signal
+            timestamp = event.GetTime()  # TODO: get timestamp for the signal
             if signal.GetNumberOfPoints() != len(data):
                 raise ValueError(f"Unexpected number of points: {signal.GetNumberOfPoints()}")
             for data_index in range(len(data)):
